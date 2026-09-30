@@ -27,7 +27,7 @@ function App() {
       setLoading(true);
       setError(null);
       // Mapped to router.get("/", async (req, res) => {}
-      const res = await axios.get(`${API_URL}${main_door}`);
+      const res = await axios.get(`${API_URL}${main_door}/basic`);
       setTodos(res.data);
       console.log(res.data);
     } catch (err) {
@@ -50,7 +50,7 @@ function App() {
     try {
       setError(null);
       // Mapped to router.post("/", (req, res) => {
-      const res = await axios.post(`${API_URL}${main_door}`, {
+      const res = await axios.post(`${API_URL}${main_door}/basic`, {
         description: description.trim(),
         completed: false,
       });
@@ -72,6 +72,7 @@ function App() {
       setError(null);
 
       const currentTodo = todos.find((todo) => todo.todo_id === id);
+      alert(currentTodo.description);
       const trimmedText = editedText.trim();
 
       if (currentTodo.description === trimmedText) {
@@ -80,7 +81,7 @@ function App() {
         return;
       }
       //UPDATE_SECTION : Mapped to router.put("/:id", async (req, res) => {
-      await axios.put(`${API_URL}${main_door}/${id}`, {
+      await axios.put(`${API_URL}${main_door}/basic/${id}`, {
         description: trimmedText,
         completed: currentTodo.completed,
         editOperation: my_editOperation,
@@ -108,7 +109,10 @@ function App() {
     try {
       setError(null);
       // UPDATE_SECTION : Mapped to router.put("/:id", async (req, res) => {
-      await axios.delete(`${API_URL}${main_door}/${id}`);
+      // await axios.delete(`${API_URL}${main_door}/${id}`);
+      await axios.post(
+        `${API_URL}${main_door}/advanced/create-delete-audit-log/${id}`,
+      );
       setTodos(todos.filter((todo) => todo.todo_id !== id));
     } catch (err) {
       console.error(err.message);
@@ -121,7 +125,7 @@ function App() {
       setError(null);
       const todo = todos.find((todo) => todo.todo_id === id);
       // UPDATE_SECTION : Mapped to router.put("/:id", async (req, res) => {
-      await axios.put(`${API_URL}${main_door}/${id}`, {
+      await axios.put(`${API_URL}${main_door}/basic/${id}`, {
         description: todo.description,
         completed: !todo.completed,
       });
@@ -130,6 +134,90 @@ function App() {
           todo.todo_id === id ? { ...todo, completed: !todo.completed } : todo,
         ),
       );
+    } catch (err) {
+      console.error(err.message);
+      setError("Failed to update todo. Please try again.");
+    }
+  };
+
+  const handleEditAudit = async (e, id) => {
+    console.log("🔥 handleEditAudit fired");
+    console.log("ID:", id);
+    // 1. Get the button that triggered the submit
+    const button = e.currentTarget;
+    // 2. Extract the custom data attribute
+    const my_buttonType = button?.dataset.editOperation || "UNDEFINED";
+
+    console.log("Operation:", my_buttonType);
+
+    try {
+      const currentTodo = todos.find((todo) => todo.todo_id === id);
+      console.log("Current todo:", currentTodo);
+      if (!currentTodo) {
+        throw new Error(`Todo with id ${id} not found`);
+      }
+
+      setError(null);
+
+      let payload;
+      // -----------------------------
+      // UPDATE DESCRIPTION
+      // -----------------------------
+      if (my_buttonType === "UPDATE-DESCRIPTION") {
+        const trimmedText = editedText.trim();
+
+        // Prevent duplicate audit entries
+        if (currentTodo.description === trimmedText) {
+          setEditingTodo(null);
+          setEditedText("");
+          return;
+        }
+
+        payload = {
+          editOperation: my_buttonType,
+          description: trimmedText,
+          completed: currentTodo.completed,
+        };
+        // -----------------------------
+        // UPDATE TOGGLE
+        // -----------------------------
+      } else if (my_buttonType === "UPDATE-TOGGLE") {
+        payload = {
+          editOperation: my_buttonType,
+          description: currentTodo.description,
+          completed: !currentTodo.completed,
+        };
+        // -----------------------------
+        // UNKNOWN OPERATION
+        // -----------------------------
+      } else {
+        throw new Error(`Unknown edit operation: ${my_buttonType}`);
+      }
+      // -----------------------------
+      // CALL API FIRST
+      // -----------------------------
+      await axios.put(
+        `${API_URL}${main_door}/advanced/update-audit-log/${id}`,
+        payload,
+      );
+      // -----------------------------
+      // UPDATE FRONTEND STATE
+      // ONLY AFTER API SUCCESS
+      // -----------------------------
+      setTodos(
+        todos.map((todo) =>
+          todo.todo_id === id
+            ? {
+                ...todo,
+                description: payload.description,
+                completed: payload.completed,
+              }
+            : todo,
+        ),
+      );
+      // Clear editing state
+      setEditingTodo(null);
+      setEditedText("");
     } catch (err) {
       console.error(err.message);
       setError("Failed to update todo. Please try again.");
@@ -184,10 +272,11 @@ function App() {
                         onChange={(e) => setEditedText(e.target.value)}
                       />
                       <div>
-                        <button
-                          onClick={(e) => saveEdit(e, todo.todo_id)} // This is the save button after clicking each edit (pencil) button
+                        <button // For saveEdit(e, todo.todo_id)
+                          type="button"
+                          onClick={(e) => handleEditAudit(e, todo.todo_id)} // This is the save button(green checkmark) after clicking each edit (pencil) button
                           className="px-4 py-2 bg-green-500 text-white rounded-lg mr-2 mt-2 hover:bg-green-600 duration-200"
-                          data-edit-operation="UPDATE"
+                          data-edit-operation="UPDATE-DESCRIPTION"
                         >
                           <MdOutlineDone />
                         </button>
@@ -203,14 +292,15 @@ function App() {
                     //...otherwise, show the todo description with edit and delete buttons
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-x-4 overflow-hidden">
-                        <button
-                          onClick={() => toggleCompleted(todo.todo_id)}
+                        <button // For toggleCompleted(todo.todo_id)
+                          type="button"
+                          onClick={(e) => handleEditAudit(e, todo.todo_id)}
                           className={`radio-button flex-shrink-0 h-6 w-6 border-2 rounded-full flex items-center justify-center ${
                             todo.completed
                               ? "bg-green-500 border-green-500 text-white"
                               : "border-gray-300 hover:border-blue-400"
                           }`}
-                          data-edit-operation="UPDATE"
+                          data-edit-operation="UPDATE-TOGGLE"
                         >
                           {todo.completed && <MdOutlineDone size={16} />}
                         </button>

@@ -1,1 +1,1 @@
-export const main_door = "/todos";
+export const main_door = "/apis"; // Use either /todos or /apis for the main door to access the API routes. This is a shared constant that can be used in both the backend and frontend to ensure consistency in the API endpoint paths.

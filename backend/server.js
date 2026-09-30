@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import todoRoutes from "./routes/todos.js";
+import rootRouter from "./routes/index.js";
 import { main_door } from "../shared.js";
 
 // Create an instance of the Express application
@@ -17,7 +18,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Use the todos substring router for all routes starting with "/todos"
-app.use(main_door, todoRoutes);
+// app.use(main_door, todoRoutes);
+
+// Mount all the routes from the index.js file in the routes folder
+app.use(main_door, rootRouter);
 
 // app.get("/", (req, res) => {
 //   res.send("API is running...");

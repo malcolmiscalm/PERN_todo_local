@@ -3,4 +3,5 @@
 /backend/node_modules
 */vite.config.js
 *.json
+# This is a comment
 */public
