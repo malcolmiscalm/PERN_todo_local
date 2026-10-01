@@ -5,7 +5,7 @@ const pool = new Pool({
   user: "postgres",
   password: "password",
   host: "localhost",
-  port: 5434,
+  port: 5434, //5050
   database: "PERN_todo_db",
 });
 

@@ -62,49 +62,6 @@ function App() {
     }
   };
 
-  const saveEdit = async (e, id) => {
-    // 1. Get the button that triggered the submit
-    const button = e.currentTarget;
-    // 2. Extract the custom data attributes
-    const my_editOperation = button?.dataset.editOperation || "UNDEFINED";
-    console.log(`Edit operation, let me see it : ${my_editOperation}`);
-    try {
-      setError(null);
-
-      const currentTodo = todos.find((todo) => todo.todo_id === id);
-      alert(currentTodo.description);
-      const trimmedText = editedText.trim();
-
-      if (currentTodo.description === trimmedText) {
-        setEditingTodo(null);
-        setEditedText("");
-        return;
-      }
-      //UPDATE_SECTION : Mapped to router.put("/:id", async (req, res) => {
-      await axios.put(`${API_URL}${main_door}/basic/${id}`, {
-        description: trimmedText,
-        completed: currentTodo.completed,
-        editOperation: my_editOperation,
-      });
-      setEditingTodo(null);
-      setEditedText("");
-      setTodos(
-        todos.map((todo) =>
-          todo.todo_id === id
-            ? {
-                ...todo,
-                description: trimmedText,
-                completed: false, // Reset completed status to false after editing
-              }
-            : todo,
-        ),
-      );
-    } catch (err) {
-      console.error(err.message);
-      setError("Failed to update todo. Please try again.");
-    }
-  };
-
   const deleteTodo = async (id) => {
     try {
       setError(null);
@@ -117,26 +74,6 @@ function App() {
     } catch (err) {
       console.error(err.message);
       setError("Failed to delete todo. Please try again.");
-    }
-  };
-
-  const toggleCompleted = async (id) => {
-    try {
-      setError(null);
-      const todo = todos.find((todo) => todo.todo_id === id);
-      // UPDATE_SECTION : Mapped to router.put("/:id", async (req, res) => {
-      await axios.put(`${API_URL}${main_door}/basic/${id}`, {
-        description: todo.description,
-        completed: !todo.completed,
-      });
-      setTodos(
-        todos.map((todo) =>
-          todo.todo_id === id ? { ...todo, completed: !todo.completed } : todo,
-        ),
-      );
-    } catch (err) {
-      console.error(err.message);
-      setError("Failed to update todo. Please try again.");
     }
   };
 
@@ -177,6 +114,7 @@ function App() {
           editOperation: my_buttonType,
           description: trimmedText,
           completed: currentTodo.completed,
+          remarks: `Changed description from "${currentTodo.description}" to "${trimmedText}"`,
         };
         // -----------------------------
         // UPDATE TOGGLE
@@ -186,6 +124,7 @@ function App() {
           editOperation: my_buttonType,
           description: currentTodo.description,
           completed: !currentTodo.completed,
+          remarks: `Toggled completed status from "${currentTodo.completed}" to "${!currentTodo.completed}"`,
         };
         // -----------------------------
         // UNKNOWN OPERATION
